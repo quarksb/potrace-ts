@@ -1,61 +1,52 @@
-import { Curve, Path } from "./base";
-import { Bitmap } from "./bitmap";
+import { Curve, Path, Point } from "./base";
 
-export function getSVG(bitmap: Bitmap, pathArr: Path[], size: number, opt_type: string) {
-    const w = bitmap.w * size
-    const h = bitmap.h * size
-    let len = pathArr.length, c;
+export function getSVG(pathArr: Path[], size: { w: number, h: number }, isStroke = false) {
+    const { w, h } = size
+    let len = pathArr.length;
 
-    let svg = '<svg id="svg" version="1.1" width="' + w + '" height="' + h +
-        '" xmlns="http://www.w3.org/2000/svg">';
+    let svg = `<svg id="svg" viewBox="0 0 ${w} ${h}" version="1.1" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">`;
     svg += '<path d="';
     for (let i = 0; i < len; i++) {
         const { curve } = pathArr[i];
-        svg += path(curve, size);
+        svg += getPathStr(curve);
     }
-    let strokec, fillc, fillrule;
-    if (opt_type === "curve") {
-        strokec = "black";
-        fillc = "none";
-        fillrule = '';
+    let stroke, fill, fillRule;
+    if (isStroke) {
+        stroke = "black";
+        fill = "none";
+        fillRule = '';
     } else {
-        strokec = "none";
-        fillc = "black";
-        fillrule = ' fill-rule="evenodd"';
+        stroke = "none";
+        fill = "black";
+        fillRule = ' fill-rule="evenodd"';
     }
-    svg += `" stroke="${strokec}" fill="${fillc}"${fillrule}/></svg>`;
+    svg += `" stroke="${stroke}" fill="${fill}"${fillRule}/></svg>`;
     return svg;
 }
 
-function path(curve: Curve, size: number) {
-    let n = curve.n;
-    let p = 'M' + (curve.points[(n - 1) * 3 + 2].x * size).toFixed(3) +
-        ' ' + (curve.points[(n - 1) * 3 + 2].y * size).toFixed(3) + ' ';
+const simple = (num: number) => num.toFixed(3);
+
+function getPathStr(curve: Curve) {
+    const { n, points, tag } = curve;
+    let pathStr = `M${(points[(n - 1) * 3 + 2].x).toFixed(3)} ${(points[(n - 1) * 3 + 2].y).toFixed(3)} `;
     for (let i = 0; i < n; i++) {
-        if (curve.tag[i] === "CURVE") {
-            p += bezier(curve, size, i);
-        } else if (curve.tag[i] === "CORNER") {
-            p += segment(curve, size, i);
+        if (tag[i] === "CURVE") {
+            pathStr += bezier(points, 3 * i);
+        } else if (tag[i] === "CORNER") {
+            pathStr += segment(points, 3 * i);
         }
     }
-    //p += 
-    return p;
+    return pathStr;
 }
 
-function bezier(curve: Curve, size: number, i: number) {
-    const simple = (x: number) => (x * size).toFixed(3);
-    let b = `C ${simple(curve.points[i * 3 + 0].x)} ${(curve.points[i * 3 + 0].y * size).toFixed(3)},`;
-    b += (curve.points[i * 3 + 1].x * size).toFixed(3) + ' ' +
-        (curve.points[i * 3 + 1].y * size).toFixed(3) + ',';
-    b += (curve.points[i * 3 + 2].x * size).toFixed(3) + ' ' +
-        (curve.points[i * 3 + 2].y * size).toFixed(3) + ' ';
+function bezier(points: Point[], i: number) {
+    let b = `C ${simple(points[i + 0].x)} ${(points[i + 0].y).toFixed(3)},`;
+    b += `${simple(points[i + 1].x)} ${(points[i + 1].y).toFixed(3)},`;
+    b += `${simple(points[i + 2].x)} ${(points[i + 2].y).toFixed(3)} `;
     return b;
 }
 
-function segment(curve: Curve, size: number, i: number) {
-    let s = 'L ' + (curve.points[i * 3 + 1].x * size).toFixed(3) + ' ' +
-        (curve.points[i * 3 + 1].y * size).toFixed(3) + ' ';
-    s += (curve.points[i * 3 + 2].x * size).toFixed(3) + ' ' +
-        (curve.points[i * 3 + 2].y * size).toFixed(3) + ' ';
-    return s;
+/** */
+function segment(points: Point[], i: number) {
+    return `L ${simple(points[i + 2].x)} ${simple(points[i + 2].y)}`;
 }

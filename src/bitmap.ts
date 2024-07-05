@@ -44,7 +44,7 @@ export class Bitmap {
      * @param y The y-coordinate.
      * @returns True if the pixel at the specified coordinates is set to 1, false otherwise.
      */
-    at(x: number, y: number): boolean {
+    checkPixel(x: number, y: number): boolean {
         return (
             x >= 0 &&
             x < this.w &&
@@ -61,18 +61,13 @@ export class Bitmap {
      */
     index(i: number): Point {
         const y = Math.floor(i / this.w);
-        const x = i - y * this.w;
+        const x = i % this.w;
         return new Point(x, y);
     }
 
-    /**
-     * Flips the value of the pixel at the specified coordinates.
-     * If the pixel is currently set to 1, it will be set to 0, and vice versa.
-     * @param x The x-coordinate.
-     * @param y The y-coordinate.
-     */
+
     flip(x: number, y: number): void {
-        this.data[this.w * y + x] = Number(!this.at(x, y));
+        this.data[this.w * y + x] = Number(!this.checkPixel(x, y));
     }
 
     /**

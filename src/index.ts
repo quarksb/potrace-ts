@@ -1,16 +1,17 @@
 import { Bitmap } from "./bitmap";
 import { Config, DefaultConfig } from "./config";
 import { bmToPathArr, processPath } from "./path";
+import { getSVG } from "./svg";
 
 
-
-
-
-export function process(image: HTMLImageElement, config: Partial<Config> = {}) {
+export function getSvg(image: HTMLImageElement, config: Partial<Config> = {}) {
     const bitmap: Bitmap = getBitmap(image)
     const realConfig = { ...DefaultConfig, ...config };
     const pathArr = bmToPathArr(bitmap, realConfig);
-    processPath(pathArr);
+    processPath(pathArr, realConfig);
+    const w = bitmap.w * realConfig.scale;
+    const h = bitmap.h * realConfig.scale;
+    return getSVG(pathArr, { w, h }, config.isStroke);
 }
 
 /**

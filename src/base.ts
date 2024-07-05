@@ -36,7 +36,6 @@ export class Curve {
 
 export class Path {
     area: number;
-    len: number;
     curve: Curve;
     points: Point[];
     minX: number;
@@ -44,15 +43,13 @@ export class Path {
     maxX: number;
     maxY: number;
     sign: string = "";
-    x0: number = 0;
-    y0: number = 0;
+
     sums: Sum[] = [];
     lon: number[] = [];
     m: number = 0;
     po: number[] = [];
     constructor () {
         this.area = 0;
-        this.len = 0;
         this.curve = new Curve(0);
         this.points = [];
         this.minX = 100000;
@@ -62,6 +59,7 @@ export class Path {
     }
 }
 
+/**Matrix 2D 数据？ */
 export class Quad {
     data: number[];
     constructor () {
@@ -76,7 +74,9 @@ export class Sum {
     x: number;
     y: number;
     xy: number;
+    /**x^2 */
     x2: number;
+    /**y^2 */
     y2: number;
     constructor (x: number, y: number, xy: number, x2: number, y2: number) {
         this.x = x;

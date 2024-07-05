@@ -48,14 +48,14 @@ export function interval(lambda: number, a: Point, b: Point) {
     return new Point(x, y);
 }
 
-export function dorth_infty(p1: Point, p2: Point) {
+export function getOrthogonalVector(p1: Point, p2: Point) {
     const x = -Math.sign(p2.y - p1.y);
     const y = Math.sign(p2.x - p1.x);
     return new Point(x, y);
 }
 
 export function ddenom(p0: Point, p2: Point) {
-    const r = dorth_infty(p0, p2);
+    const r = getOrthogonalVector(p0, p2);
 
     return r.y * (p2.x - p0.x) - r.x * (p2.y - p0.y);
 }
@@ -119,4 +119,34 @@ export function bezier(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
     const x = s * s * s * p0.x + 3 * (s * s * t) * p1.x + 3 * (t * t * s) * p2.x + t * t * t * p3.x;
     const y = s * s * s * p0.y + 3 * (s * s * t) * p1.y + 3 * (t * t * s) * p2.y + t * t * t * p3.y;
     return new Point(x, y);
+}
+
+
+export function tangent(p0: Point, p1: Point, p2: Point, p3: Point, q0: Point, q1: Point) {
+    const A = cross(p0, p1, q0, q1);
+    const B = cross(p1, p2, q0, q1);
+    const C = cross(p2, p3, q0, q1);
+
+    const a = A - 2 * B + C;
+    const b = -2 * A + 2 * B;
+    const c = A;
+
+    const d = b * b - 4 * a * c;
+
+    if (a === 0 || d < 0) {
+        return -1.0;
+    }
+
+    const s = Math.sqrt(d);
+
+    const r1 = (-b + s) / (2 * a);
+    const r2 = (-b - s) / (2 * a);
+
+    if (r1 >= 0 && r1 <= 1) {
+        return r1;
+    } else if (r2 >= 0 && r2 <= 1) {
+        return r2;
+    } else {
+        return -1.0;
+    }
 }
