@@ -27,7 +27,7 @@ export function getSVG(pathArr: Path[], size: { w: number, h: number }, isStroke
 const simple = (num: number) => num.toFixed(3);
 
 function getPathStr(curve: Curve) {
-    const { n, points, tag } = curve;
+    const { n, controlPoints: points, tag } = curve;
     let pathStr = `M${(points[(n - 1) * 3 + 2].x).toFixed(3)} ${(points[(n - 1) * 3 + 2].y).toFixed(3)} `;
     for (let i = 0; i < n; i++) {
         if (tag[i] === "CURVE") {

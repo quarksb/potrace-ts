@@ -4,7 +4,7 @@ import { bmToPathArr, processPath } from "./path";
 import { getSVG } from "./svg";
 
 
-export function getSvg(image: HTMLImageElement, config: Partial<Config> = {}) {
+export function imageToSvg(image: HTMLImageElement, config: Partial<Config> = {}) {
     const bitmap: Bitmap = getBitmap(image)
     const realConfig = { ...DefaultConfig, ...config };
     const pathArr = bmToPathArr(bitmap, realConfig);

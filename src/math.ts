@@ -10,7 +10,7 @@ export function mod(a: number, n: number) {
  * @param p2 The second point.
  * @returns The cross product of the two points.
  */
-export function xprod(p1: Point, p2: Point) {
+export function crossProduct(p1: Point, p2: Point) {
     return p1.x * p2.y - p1.y * p2.x;
 }
 
@@ -30,7 +30,7 @@ export function cyclic(a: number, b: number, c: number) {
     }
 }
 
-export function quadform(Q: Quad, point: Point) {
+export function quadForm(Q: Quad, point: Point) {
     const v = [point.x, point.y, 1];
     let sum = 0.0;
 
@@ -48,26 +48,22 @@ export function interval(lambda: number, a: Point, b: Point) {
     return new Point(x, y);
 }
 
-export function getOrthogonalVector(p1: Point, p2: Point) {
-    const x = -Math.sign(p2.y - p1.y);
-    const y = Math.sign(p2.x - p1.x);
-    return new Point(x, y);
+/**
+ * ### 返回 |dx| + |dy|
+ * 其中 dx = p2.x - p1.x, dy = p2.y - p1.y
+ * @param p1 - The starting point of the line segment.
+ * @param p2 - The ending point of the line segment.
+ * @returns The calculated denominator.
+ */
+export function getDenom(p1: Point, p2: Point) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sign(dx) * dx + Math.sign(dy) * dy;
 }
 
-export function ddenom(p0: Point, p2: Point) {
-    const r = getOrthogonalVector(p0, p2);
-
-    return r.y * (p2.x - p0.x) - r.x * (p2.y - p0.y);
-}
-
-/** ```p0p1 X p1p2``` */
-export function dpara(p0: Point, p1: Point, p2: Point) {
-    const x1 = p1.x - p0.x;
-    const y1 = p1.y - p0.y;
-    const x2 = p2.x - p0.x;
-    const y2 = p2.y - p0.y;
-
-    return x1 * y2 - x2 * y1;
+/** ### ```p0p1 X p0p2``` */
+export function cross2(p0: Point, p1: Point, p2: Point) {
+    return cross(p0, p1, p0, p2);
 }
 
 /**
@@ -89,17 +85,12 @@ export function cross(p0: Point, p1: Point, p2: Point, p3: Point) {
 }
 
 /**```p0p1 * p0p2``` */
-export function iprod(p0: Point, p1: Point, p2: Point) {
-    const x1 = p1.x - p0.x;
-    const y1 = p1.y - p0.y;
-    const x2 = p2.x - p0.x;
-    const y2 = p2.y - p0.y;
-
-    return x1 * x2 + y1 * y2;
+export function dot2(p0: Point, p1: Point, p2: Point) {
+    return dot(p0, p1, p0, p2);
 }
 
 /**```p0p1 * p2p3``` */
-export function iprod1(p0: Point, p1: Point, p2: Point, p3: Point) {
+export function dot(p0: Point, p1: Point, p2: Point, p3: Point) {
     const x1 = p1.x - p0.x;
     const y1 = p1.y - p0.y;
     const x2 = p3.x - p2.x;

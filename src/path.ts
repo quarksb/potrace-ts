@@ -1,15 +1,14 @@
 import { Curve, Opti, Path, Point, Quad, Sum } from "./base";
 import { Bitmap } from "./bitmap";
 import { Config } from "./config";
-import { bezier, cross, cyclic, ddenom, dpara, getDist, interval, iprod, iprod1, mod, quadform, tangent, xprod } from "./math";
-
+import { bezier, cross, cyclic, getDenom, cross2, getDist, interval, dot2, dot, mod, quadForm, tangent, crossProduct } from "./math";
 
 export function bmToPathArr(bitmap: Bitmap, config: Config) {
-    const bmCopy = bitmap!.copy()
-    const pathArr: Path[] = []
+    const bmCopy = bitmap!.copy();
+    const pathArr: Path[] = [];
 
-    let currentPoint: false | Point = new Point(0, 0)
-    while (currentPoint = getNext(bmCopy, currentPoint)) {
+    let currentPoint: false | Point = new Point(0, 0);
+    while ((currentPoint = getNext(bmCopy, currentPoint))) {
         const path = getPath(bmCopy, currentPoint, config);
         xOrPath(bmCopy, path);
         // 面积超过杂点判定阈值，认定为有效路径
@@ -22,9 +21,9 @@ export function bmToPathArr(bitmap: Bitmap, config: Config) {
 
 /**
  * ### 寻找下个有效点
- * @param bitmap 
- * @param point 
- * @returns 
+ * @param bitmap
+ * @param point
+ * @returns
  */
 function getNext(bitmap: Bitmap, point: Point) {
     let i = bitmap.w * point.y + point.x;
@@ -65,7 +64,8 @@ function majority(bitmap: Bitmap, x: number, y: number) {
 function getPath(bitmap: Bitmap, point: Point, { turnPolicy: p }: Config) {
     const path = new Path();
 
-    let dirX = 0, dirY = 1;
+    let dirX = 0,
+        dirY = 1;
     let { x, y } = point;
 
     path.sign = bitmap!.checkPixel(point.x, point.y) ? "+" : "-";
@@ -82,30 +82,34 @@ function getPath(bitmap: Bitmap, point: Point, { turnPolicy: p }: Config) {
         y += dirY;
         path.area -= x * dirY;
 
-        if (x === point.x && y === point.y)
-            break;
+        if (x === point.x && y === point.y) break;
 
         const l = bitmap.checkPixel(x + (dirX + dirY - 1) / 2, y + (dirY - dirX - 1) / 2);
         const r = bitmap.checkPixel(x + (dirX - dirY - 1) / 2, y + (dirY + dirX - 1) / 2);
 
         if (r && !l) {
-            const isTurnRight = p === "right" || (p === "black" && path.sign === "+") || (p === "white" && path.sign === "-") || (p === "majority" && majority(bitmap, x, y)) || (p === "minority" && !majority(bitmap, x, y));
+            const isTurnRight =
+                p === "right" ||
+                (p === "black" && path.sign === "+") ||
+                (p === "white" && path.sign === "-") ||
+                (p === "majority" && majority(bitmap, x, y)) ||
+                (p === "minority" && !majority(bitmap, x, y));
             if (isTurnRight) {
-                [dirX, dirY] = [-dirY, dirX]
+                [dirX, dirY] = [-dirY, dirX];
             } else {
-                [dirX, dirY] = [dirY, -dirX]
+                [dirX, dirY] = [dirY, -dirX];
             }
         } else if (r) {
-            [dirX, dirY] = [-dirY, dirX]
+            [dirX, dirY] = [-dirY, dirX];
         } else if (!l) {
-            [dirX, dirY] = [dirY, -dirX]
+            [dirX, dirY] = [dirY, -dirX];
         }
     }
     return path;
 }
 
 function xOrPath(bitmap: Bitmap, path: Path) {
-    let y1 = path.points[0].y
+    let y1 = path.points[0].y;
     let maxX = -Infinity;
     let minY = Infinity;
     for (const point of path.points) {
@@ -120,69 +124,62 @@ function xOrPath(bitmap: Bitmap, path: Path) {
             y1 = y;
         }
     }
-
 }
 
-/**惩罚函数 */
-export function penalty3(path: Path, i: number, j: number) {
+/**### 惩罚函数 */
+export function getPenalty(path: Path, i: number, j: number) {
     const { points, sums } = path;
-    const { length: n } = points
+    const { length: n } = points;
 
-    let x, y, xy, x2, y2,
-        k, a, b, c, s,
-        px, py, ex, ey,
-        r = 0;
+    let r = 0;
     if (j >= n) {
         j -= n;
         r = 1;
     }
 
-    if (r === 0) {
-        x = sums[j + 1].x - sums[i].x;
-        y = sums[j + 1].y - sums[i].y;
-        x2 = sums[j + 1].x2 - sums[i].x2;
-        xy = sums[j + 1].xy - sums[i].xy;
-        y2 = sums[j + 1].y2 - sums[i].y2;
-        k = j + 1 - i;
-    } else {
-        x = sums[j + 1].x - sums[i].x + sums[n].x;
-        y = sums[j + 1].y - sums[i].y + sums[n].y;
-        x2 = sums[j + 1].x2 - sums[i].x2 + sums[n].x2;
-        xy = sums[j + 1].xy - sums[i].xy + sums[n].xy;
-        y2 = sums[j + 1].y2 - sums[i].y2 + sums[n].y2;
-        k = j + 1 - i + n;
-    }
+    const x = sums[j + 1].x - sums[i].x + r * sums[n].x;
+    const y = sums[j + 1].y - sums[i].y + r * sums[n].y;
+    const x2 = sums[j + 1].x2 - sums[i].x2 + r * sums[n].x2;
+    const xy = sums[j + 1].xy - sums[i].xy + r * sums[n].xy;
+    const y2 = sums[j + 1].y2 - sums[i].y2 + r * sums[n].y2;
+    const k = j + 1 - i + r * n;
 
-    px = (points[i].x + points[j].x) / 2.0 - points[0].x;
-    py = (points[i].y + points[j].y) / 2.0 - points[0].y;
-    ey = (points[j].x - points[i].x);
-    ex = -(points[j].y - points[i].y);
+    const px = (points[i].x + points[j].x) / 2.0 - points[0].x;
+    const py = (points[i].y + points[j].y) / 2.0 - points[0].y;
+    const ey = points[j].x - points[i].x;
+    const ex = -(points[j].y - points[i].y);
 
-    a = ((x2 - 2 * x * px) / k + px * px);
-    b = ((xy - x * py - y * px) / k + px * py);
-    c = ((y2 - 2 * y * py) / k + py * py);
+    const a = (x2 - 2 * x * px) / k + px * px;
+    const b = (xy - x * py - y * px) / k + px * py;
+    const c = (y2 - 2 * y * py) / k + py * py;
 
-    s = ex * ex * a + 2 * ex * ey * b + ey * ey * c;
+    const s = ex * ex * a + 2 * ex * ey * b + ey * ey * c;
 
     return Math.sqrt(s);
 }
 
 function calcLon(path: Path) {
     const { points } = path;
-    const { length: n } = points
-    const pivk = new Array(n)
-    const nc = new Array(n)
+    const { length: n } = points;
+    const pivk = new Array(n);
+    const nc = new Array(n);
     const ct = new Array(4);
     path.lon = new Array(n);
     let dir: number;
 
-    const constraint = [new Point(), new Point()],
-        cur = new Point(),
-        off = new Point(),
-        dk = new Point()
+    const constraint = [new Point(), new Point()];
+    const cur = new Point();
+    const off = new Point();
+    const dk = new Point();
     let foundk;
 
-    let j, k1, a, b, c, d, k = 0;
+    let j,
+        k1,
+        a,
+        b,
+        c,
+        d,
+        k = 0;
     for (let i = n - 1; i >= 0; i--) {
         if (points[i].x != points[k].x && points[i].y != points[k].y) {
             k = i + 1;
@@ -192,8 +189,7 @@ function calcLon(path: Path) {
 
     for (let i = n - 1; i >= 0; i--) {
         ct[0] = ct[1] = ct[2] = ct[3] = 0;
-        dir = (3 + 3 * (points[mod(i + 1, n)].x - points[i].x) +
-            (points[mod(i + 1, n)].y - points[i].y)) / 2;
+        dir = (3 + 3 * (points[mod(i + 1, n)].x - points[i].x) + (points[mod(i + 1, n)].y - points[i].y)) / 2;
         ct[dir]++;
 
         constraint[0].x = 0;
@@ -205,8 +201,7 @@ function calcLon(path: Path) {
         k1 = i;
         while (true) {
             foundk = 0;
-            dir = (3 + 3 * Math.sign(points[k].x - points[k1].x) +
-                Math.sign(points[k].y - points[k1].y)) / 2;
+            dir = (3 + 3 * Math.sign(points[k].x - points[k1].x) + Math.sign(points[k].y - points[k1].y)) / 2;
             ct[dir]++;
 
             if (ct[0] && ct[1] && ct[2] && ct[3]) {
@@ -218,22 +213,21 @@ function calcLon(path: Path) {
             cur.x = points[k].x - points[i].x;
             cur.y = points[k].y - points[i].y;
 
-            if (xprod(constraint[0], cur) < 0 || xprod(constraint[1], cur) > 0) {
+            if (crossProduct(constraint[0], cur) < 0 || crossProduct(constraint[1], cur) > 0) {
                 break;
             }
 
             if (Math.abs(cur.x) <= 1 && Math.abs(cur.y) <= 1) {
-
             } else {
-                off.x = cur.x + ((cur.y >= 0 && (cur.y > 0 || cur.x < 0)) ? 1 : -1);
-                off.y = cur.y + ((cur.x <= 0 && (cur.x < 0 || cur.y < 0)) ? 1 : -1);
-                if (xprod(constraint[0], off) >= 0) {
+                off.x = cur.x + (cur.y >= 0 && (cur.y > 0 || cur.x < 0) ? 1 : -1);
+                off.y = cur.y + (cur.x <= 0 && (cur.x < 0 || cur.y < 0) ? 1 : -1);
+                if (crossProduct(constraint[0], off) >= 0) {
                     constraint[0].x = off.x;
                     constraint[0].y = off.y;
                 }
-                off.x = cur.x + ((cur.y <= 0 && (cur.y < 0 || cur.x < 0)) ? 1 : -1);
-                off.y = cur.y + ((cur.x >= 0 && (cur.x > 0 || cur.y < 0)) ? 1 : -1);
-                if (xprod(constraint[1], off) <= 0) {
+                off.x = cur.x + (cur.y <= 0 && (cur.y < 0 || cur.x < 0) ? 1 : -1);
+                off.y = cur.y + (cur.x >= 0 && (cur.x > 0 || cur.y < 0) ? 1 : -1);
+                if (crossProduct(constraint[1], off) <= 0) {
                     constraint[1].x = off.x;
                     constraint[1].y = off.y;
                 }
@@ -250,10 +244,10 @@ function calcLon(path: Path) {
             cur.x = points[k1].x - points[i].x;
             cur.y = points[k1].y - points[i].y;
 
-            a = xprod(constraint[0], cur);
-            b = xprod(constraint[0], dk);
-            c = xprod(constraint[1], cur);
-            d = xprod(constraint[1], dk);
+            a = crossProduct(constraint[0], cur);
+            b = crossProduct(constraint[0], dk);
+            c = crossProduct(constraint[1], cur);
+            d = crossProduct(constraint[1], dk);
 
             j = 10000000;
             if (b < 0) {
@@ -281,17 +275,15 @@ function calcLon(path: Path) {
 }
 
 function bestPolygon(path: Path) {
-    let i, j, m
+    let i, j, m;
     const { points } = path;
-    const { length: n } = points
-    const pen = new Array(n + 1),
-        prev = new Array(n + 1),
-        clip0 = new Array(n),
-        clip1 = new Array(n + 1),
-        seg0 = new Array(n + 1),
-        seg1 = new Array(n + 1)
-
-    let thispen, best;
+    const { length: n } = points;
+    const pen = new Array(n + 1);
+    const prev = new Array(n + 1);
+    const clip0 = new Array(n);
+    const clip1 = new Array(n + 1);
+    const seg0 = new Array(n + 1);
+    const seg1 = new Array(n + 1);
 
     for (let i = 0; i < n; i++) {
         let c = mod(path.lon[mod(i - 1, n)] - 1, n);
@@ -327,13 +319,13 @@ function bestPolygon(path: Path) {
         i = clip1[i];
     }
     seg1[0] = 0;
-
     pen[0] = 0;
+
     for (let j = 1; j <= m; j++) {
         for (let i = seg1[j]; i <= seg0[j]; i++) {
-            best = -1;
+            let best = -1;
             for (let k = seg0[j - 1]; k >= clip1[i]; k--) {
-                thispen = penalty3(path, k, i) + pen[k];
+                const thispen = getPenalty(path, k, i) + pen[k];
                 if (best < 0 || thispen < best) {
                     prev[i] = k;
                     best = thispen;
@@ -353,7 +345,7 @@ function bestPolygon(path: Path) {
 
 function pointSlope(path: Path, i: number, j: number) {
     const { points, sums } = path;
-    const { length: n } = points
+    const { length: n } = points;
 
     let r = 0;
     while (j >= n) {
@@ -373,7 +365,6 @@ function pointSlope(path: Path, i: number, j: number) {
         r += 1;
     }
 
-
     const x = sums[j + 1].x - sums[i].x + r * sums[n].x;
     const y = sums[j + 1].y - sums[i].y + r * sums[n].y;
     const x2 = sums[j + 1].x2 - sums[i].x2 + r * sums[n].x2;
@@ -383,10 +374,9 @@ function pointSlope(path: Path, i: number, j: number) {
 
     const ctr = new Point(x / k, y / k);
 
-
-    let a = (x2 - x * x / k) / k;
-    let b = (xy - x * y / k) / k;
-    let c = (y2 - y * y / k) / k;
+    let a = (x2 - (x * x) / k) / k;
+    let b = (xy - (x * y) / k) / k;
+    let c = (y2 - (y * y) / k) / k;
 
     const lambda2 = (a + c + Math.sqrt((a - c) * (a - c) + 4 * b * b)) / 2;
 
@@ -416,17 +406,18 @@ function pointSlope(path: Path, i: number, j: number) {
 }
 
 function adjustVertices(path: Path) {
-    let m = path.m, po = path.po;
+    let m = path.m,
+        po = path.po;
     const { points } = path;
     const { length: n } = points;
 
     let { x: x0, y: y0 } = points[0];
-    const controlPoints = new Array(m)
-    const directions = new Array(m);
+    const controlPoints: Point[] = new Array(m);
+    const directions: Point[] = new Array(m);
 
     let q = new Array(m),
-        v = new Array(3), d, k, l,
-        s = new Point();
+        v = new Array(3),
+        d;
 
     path.curve = new Curve(m);
 
@@ -451,22 +442,22 @@ function adjustVertices(path: Path) {
         } else {
             v[0] = directions[i].y;
             v[1] = -directions[i].x;
-            v[2] = - v[1] * controlPoints[i].y - v[0] * controlPoints[i].x;
+            v[2] = -v[1] * controlPoints[i].y - v[0] * controlPoints[i].x;
             for (let l = 0; l < 3; l++) {
                 for (let k = 0; k < 3; k++) {
-                    q[i].data[l * 3 + k] = v[l] * v[k] / d;
+                    q[i].data[l * 3 + k] = (v[l] * v[k]) / d;
                 }
             }
         }
     }
 
-
     for (let i = 0; i < m; i++) {
         const Q = new Quad();
         const w = new Point();
 
-        s.x = points[po[i]].x - x0;
-        s.y = points[po[i]].y - y0;
+        const x = points[po[i]].x - x0;
+        const y = points[po[i]].y - y0;
+        const s = new Point(x, y);
 
         const j = mod(i - 1, m);
 
@@ -495,30 +486,30 @@ function adjustVertices(path: Path) {
                 v[1] = 0;
             }
             const d = v[0] * v[0] + v[1] * v[1];
-            v[2] = - v[1] * s.y - v[0] * s.x;
+            v[2] = -v[1] * s.y - v[0] * s.x;
             for (let l = 0; l < 3; l++) {
                 for (let k = 0; k < 3; k++) {
-                    Q.data[l * 3 + k] += v[l] * v[k] / d;
+                    Q.data[l * 3 + k] += (v[l] * v[k]) / d;
                 }
             }
         }
         let dx = Math.abs(w.x - s.x);
         let dy = Math.abs(w.y - s.y);
         if (dx <= 0.5 && dy <= 0.5) {
-            path.curve.vertex[i] = new Point(w.x + x0, w.y + y0);
+            path.curve.basePoints[i] = new Point(w.x + x0, w.y + y0);
             continue;
         }
 
-        let min = quadform(Q, s);
+        let min = quadForm(Q, s);
         let xMin = s.x;
         let yMin = s.y;
 
         if (Q.at(0, 0) !== 0.0) {
             for (let z = 0; z < 2; z++) {
                 w.y = s.y - 0.5 + z;
-                w.x = - (Q.at(0, 1) * w.y + Q.at(0, 2)) / Q.at(0, 0);
+                w.x = -(Q.at(0, 1) * w.y + Q.at(0, 2)) / Q.at(0, 0);
                 dx = Math.abs(w.x - s.x);
-                const cand = quadform(Q, w);
+                const cand = quadForm(Q, w);
                 if (dx <= 0.5 && cand < min) {
                     min = cand;
                     xMin = w.x;
@@ -530,9 +521,9 @@ function adjustVertices(path: Path) {
         if (Q.at(1, 1) !== 0.0) {
             for (let z = 0; z < 2; z++) {
                 w.x = s.x - 0.5 + z;
-                w.y = - (Q.at(1, 0) * w.x + Q.at(1, 2)) / Q.at(1, 1);
+                w.y = -(Q.at(1, 0) * w.x + Q.at(1, 2)) / Q.at(1, 1);
                 dy = Math.abs(w.y - s.y);
-                const cand = quadform(Q, w);
+                const cand = quadForm(Q, w);
                 if (dy <= 0.5 && cand < min) {
                     min = cand;
                     xMin = w.x;
@@ -545,7 +536,7 @@ function adjustVertices(path: Path) {
             for (let k = 0; k < 2; k++) {
                 w.x = s.x - 0.5 + l;
                 w.y = s.y - 0.5 + k;
-                const cand = quadform(Q, w);
+                const cand = quadForm(Q, w);
                 if (cand < min) {
                     min = cand;
                     xMin = w.x;
@@ -554,60 +545,69 @@ function adjustVertices(path: Path) {
             }
         }
 
-        path.curve.vertex[i] = new Point(xMin + x0, yMin + y0);
+        path.curve.basePoints[i] = new Point(xMin + x0, yMin + y0);
     }
 }
 
-function reverse(path: Path) {
-    let curve = path.curve, m = curve.n;
-    const { vertex: v } = curve;
+/**
+ * Reverses the order of points in a given path.
+ *
+ * @param path - The path to reverse.
+ */
+function reversePath(path: Path) {
+    const { curve } = path;
+    const { basePoints: v, n } = curve;
 
-    for (let i = 0, j = m - 1; i < j; i++, j--) {
-        const tmp = v[i];
-        v[i] = v[j];
-        v[j] = tmp;
+    for (let i = 0; 2 * i < n - 1; i++) {
+        const j = n - 1 - i;
+        [v[i], v[j]] = [v[j], v[i]];
     }
 }
 
-function smooth(path: Path, config: Config) {
-    let m = path.curve.n;
+/**
+ * Smooths the given path using the specified configuration.
+ * 
+ * @param path - The path to be smoothed.
+ * @param config - The configuration for smoothing.
+ */
+function smoothPath(path: Path, config: Config) {
+    let { n, basePoints: points } = path.curve;
     const curve = path.curve;
 
-    let j, k, dd, denom, alpha,
-        p2, p3, p4;
+    for (let i = 0; i < n; i++) {
+        /**下一个点 */
+        const j = mod(i + 1, n);
+        /**下下个点 */
+        const k = mod(i + 2, n);
+        /**在下一点和下下点之间插值出一个点 */
+        const p4 = interval(0.5, points[k], points[j]);
 
-    for (let i = 0; i < m; i++) {
-        j = mod(i + 1, m);
-        k = mod(i + 2, m);
-        p4 = interval(1 / 2.0, curve.vertex[k], curve.vertex[j]);
-
-        denom = ddenom(curve.vertex[i], curve.vertex[k]);
+        const denom = getDenom(points[i], points[k]);
+        let alpha = 1;
         if (denom !== 0.0) {
-            dd = dpara(curve.vertex[i], curve.vertex[j], curve.vertex[k]) / denom;
+            let dd = cross2(points[i], points[j], points[k]) / denom;
             dd = Math.abs(dd);
-            alpha = dd > 1 ? (1 - 1.0 / dd) : 0;
-            alpha = alpha / 0.75;
-        } else {
-            alpha = 4 / 3.0;
+            alpha = dd > 1 ? 1 - 1.0 / dd : 0;
         }
+        alpha *= 4 / 3.0;
         curve.alpha0[j] = alpha;
 
+        // 角度大于最大角度，认为是拐角，否则是曲线
         if (alpha >= config.alphaMax) {
             curve.tag[j] = "CORNER";
-            curve.points[3 * j + 1] = curve.vertex[j];
-            curve.points[3 * j + 2] = p4;
+            curve.controlPoints[3 * j + 1] = points[j];
+            curve.controlPoints[3 * j + 2] = p4;
         } else {
-            if (alpha < 0.55) {
-                alpha = 0.55;
-            } else if (alpha > 1) {
-                alpha = 1;
-            }
-            p2 = interval(0.5 + 0.5 * alpha, curve.vertex[i], curve.vertex[j]);
-            p3 = interval(0.5 + 0.5 * alpha, curve.vertex[k], curve.vertex[j]);
             curve.tag[j] = "CURVE";
-            curve.points[3 * j + 0] = p2;
-            curve.points[3 * j + 1] = p3;
-            curve.points[3 * j + 2] = p4;
+            alpha = Math.max(0.55, alpha);
+            alpha = Math.min(1, alpha);
+            const lambda = 0.5 + 0.5 * alpha;
+            const p2 = interval(lambda, points[i], points[j]);
+            const p3 = interval(lambda, points[k], points[j]);
+
+            curve.controlPoints[3 * j + 0] = p2;
+            curve.controlPoints[3 * j + 1] = p3;
+            curve.controlPoints[3 * j + 2] = p4;
         }
         curve.alpha[j] = alpha;
         curve.beta[j] = 0.5;
@@ -615,12 +615,28 @@ function smooth(path: Path, config: Config) {
 }
 
 function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance: number, convc: any[], areac: any[]) {
-    let m = path.curve.n, curve = path.curve, vertex = curve.vertex,
-        k2, conv,
-        area, alpha, d, d1,
-        p0, p1, p2, p3, pt,
-        A, R, A1, A2, A3, A4,
-        s, t;
+    let m = path.curve.n,
+        curve = path.curve,
+        vertex = curve.basePoints,
+        k2,
+        conv,
+        area,
+        alpha,
+        d,
+        d1,
+        p0,
+        p1,
+        p2,
+        p3,
+        pt,
+        A,
+        R,
+        A1,
+        A2,
+        A3,
+        A4,
+        s,
+        t;
 
     if (i == j) {
         return 1;
@@ -640,30 +656,28 @@ function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance:
         if (convc[k1] != conv) {
             return 1;
         }
-        if (Math.sign(cross(vertex[i], vertex[i1], vertex[k1], vertex[k2])) !=
-            conv) {
+        if (Math.sign(cross(vertex[i], vertex[i1], vertex[k1], vertex[k2])) != conv) {
             return 1;
         }
-        if (iprod1(vertex[i], vertex[i1], vertex[k1], vertex[k2]) <
-            d * getDist(vertex[k1], vertex[k2]) * -0.999847695156) {
+        if (dot(vertex[i], vertex[i1], vertex[k1], vertex[k2]) < d * getDist(vertex[k1], vertex[k2]) * -0.999847695156) {
             return 1;
         }
     }
 
-    p0 = curve.points[mod(i, m) * 3 + 2].copy();
+    p0 = curve.controlPoints[mod(i, m) * 3 + 2].copy();
     p1 = vertex[mod(i + 1, m)].copy();
     p2 = vertex[mod(j, m)].copy();
-    p3 = curve.points[mod(j, m) * 3 + 2].copy();
+    p3 = curve.controlPoints[mod(j, m) * 3 + 2].copy();
 
     area = areac[j] - areac[i];
-    area -= dpara(vertex[0], curve.points[i * 3 + 2], curve.points[j * 3 + 2]) / 2;
+    area -= cross2(vertex[0], curve.controlPoints[i * 3 + 2], curve.controlPoints[j * 3 + 2]) / 2;
     if (i >= j) {
         area += areac[m];
     }
 
-    A1 = dpara(p0, p1, p2);
-    A2 = dpara(p0, p1, p3);
-    A3 = dpara(p0, p2, p3);
+    A1 = cross2(p0, p1, p2);
+    A2 = cross2(p0, p1, p3);
+    A3 = cross2(p0, p2, p3);
 
     A4 = A1 + A3 - A2;
 
@@ -673,7 +687,7 @@ function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance:
 
     t = A3 / (A3 - A4);
     s = A2 / (A2 - A1);
-    A = A2 * t / 2.0;
+    A = (A2 * t) / 2.0;
 
     if (A === 0.0) {
         return 1;
@@ -704,12 +718,11 @@ function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance:
         if (d === 0.0) {
             return 1;
         }
-        d1 = dpara(vertex[k], vertex[k1], pt) / d;
+        d1 = cross2(vertex[k], vertex[k1], pt) / d;
         if (Math.abs(d1) > opttolerance) {
             return 1;
         }
-        if (iprod(vertex[k], vertex[k1], pt) < 0 ||
-            iprod(vertex[k1], vertex[k], pt) < 0) {
+        if (dot2(vertex[k], vertex[k1], pt) < 0 || dot2(vertex[k1], vertex[k], pt) < 0) {
             return 1;
         }
         res.pen += d1 * d1;
@@ -717,17 +730,17 @@ function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance:
 
     for (let k = i; k != j; k = k1) {
         const k1 = mod(k + 1, m);
-        const t = tangent(p0, p1, p2, p3, curve.points[k * 3 + 2], curve.points[k1 * 3 + 2]);
+        const t = tangent(p0, p1, p2, p3, curve.controlPoints[k * 3 + 2], curve.controlPoints[k1 * 3 + 2]);
         if (t < -0.5) {
             return 1;
         }
         const pt = bezier(t, p0, p1, p2, p3);
-        const d = getDist(curve.points[k * 3 + 2], curve.points[k1 * 3 + 2]);
+        const d = getDist(curve.controlPoints[k * 3 + 2], curve.controlPoints[k1 * 3 + 2]);
         if (d === 0.0) {
             return 1;
         }
-        let d1 = dpara(curve.points[k * 3 + 2], curve.points[k1 * 3 + 2], pt) / d;
-        let d2 = dpara(curve.points[k * 3 + 2], curve.points[k1 * 3 + 2], vertex[k1]) / d;
+        let d1 = cross2(curve.controlPoints[k * 3 + 2], curve.controlPoints[k1 * 3 + 2], pt) / d;
+        let d2 = cross2(curve.controlPoints[k * 3 + 2], curve.controlPoints[k1 * 3 + 2], vertex[k1]) / d;
         d2 *= 0.75 * curve.alpha[k1];
         if (d2 < 0) {
             d1 = -d1;
@@ -745,23 +758,23 @@ function opti_penalty(path: Path, i: number, j: number, res: Opti, opttolerance:
 }
 
 function optiCurve(path: Path, config: Config) {
-
-    let curve = path.curve,
-        m = curve.n, vert = curve.vertex;
-    const pt = new Array(m + 1)
-    const pen = new Array(m + 1)
-    const len = new Array(m + 1)
-    const opt = new Array(m + 1);
+    let { curve } = path;
+    const { n } = curve;
+    const { basePoints: vert } = curve;
+    const pt = new Array(n + 1);
+    const pen = new Array(n + 1);
+    const len = new Array(n + 1);
+    const opt = new Array(n + 1);
     let om, r;
-    let o = new Opti()
+    let o = new Opti();
     let p0, i1, area, alpha;
 
-    const convc = new Array(m);
-    const areac = new Array(m + 1);
+    const convc = new Array(n);
+    const areac = new Array(n + 1);
 
-    for (let i = 0; i < m; i++) {
+    for (let i = 0; i < n; i++) {
         if (curve.tag[i] == "CURVE") {
-            convc[i] = Math.sign(dpara(vert[mod(i - 1, m)], vert[i], vert[mod(i + 1, m)]));
+            convc[i] = Math.sign(cross2(vert[mod(i - 1, n)], vert[i], vert[mod(i + 1, n)]));
         } else {
             convc[i] = 0;
         }
@@ -769,14 +782,13 @@ function optiCurve(path: Path, config: Config) {
 
     area = 0.0;
     areac[0] = 0.0;
-    p0 = curve.vertex[0];
-    for (let i = 0; i < m; i++) {
-        i1 = mod(i + 1, m);
+    p0 = curve.basePoints[0];
+    for (let i = 0; i < n; i++) {
+        i1 = mod(i + 1, n);
         if (curve.tag[i1] == "CURVE") {
             alpha = curve.alpha[i1];
-            area += 0.3 * alpha * (4 - alpha) *
-                dpara(curve.points[i * 3 + 2], vert[i1], curve.points[i1 * 3 + 2]) / 2;
-            area += dpara(p0, curve.points[i * 3 + 2], curve.points[i1 * 3 + 2]) / 2;
+            area += (0.3 * alpha * (4 - alpha) * cross2(curve.controlPoints[i * 3 + 2], vert[i1], curve.controlPoints[i1 * 3 + 2])) / 2;
+            area += cross2(p0, curve.controlPoints[i * 3 + 2], curve.controlPoints[i1 * 3 + 2]) / 2;
         }
         areac[i + 1] = area;
     }
@@ -785,19 +797,17 @@ function optiCurve(path: Path, config: Config) {
     pen[0] = 0;
     len[0] = 0;
 
-
-    for (let j = 1; j <= m; j++) {
+    for (let j = 1; j <= n; j++) {
         pt[j] = j - 1;
         pen[j] = pen[j - 1];
         len[j] = len[j - 1] + 1;
 
         for (let i = j - 2; i >= 0; i--) {
-            r = opti_penalty(path, i, mod(j, m), o, config.optTolerance, convc, areac);
+            r = opti_penalty(path, i, mod(j, n), o, config.optTolerance, convc, areac);
             if (r) {
                 break;
             }
-            if (len[j] > len[i] + 1 ||
-                (len[j] == len[i] + 1 && pen[j] > pen[i] + o.pen)) {
+            if (len[j] > len[i] + 1 || (len[j] == len[i] + 1 && pen[j] > pen[i] + o.pen)) {
                 pt[j] = i;
                 pen[j] = pen[i] + o.pen;
                 len[j] = len[i] + 1;
@@ -806,31 +816,30 @@ function optiCurve(path: Path, config: Config) {
             }
         }
     }
-    om = len[m];
+    om = len[n];
     const newCurve = new Curve(om);
     const s = new Array(om);
     const t = new Array(om);
 
-    let j = m;
+    let j = n;
     for (let i = om - 1; i >= 0; i--) {
         if (pt[j] == j - 1) {
-            newCurve.tag[i] = curve.tag[mod(j, m)];
-            newCurve.points[i * 3 + 0] = curve.points[mod(j, m) * 3 + 0];
-            newCurve.points[i * 3 + 1] = curve.points[mod(j, m) * 3 + 1];
-            newCurve.points[i * 3 + 2] = curve.points[mod(j, m) * 3 + 2];
-            newCurve.vertex[i] = curve.vertex[mod(j, m)];
-            newCurve.alpha[i] = curve.alpha[mod(j, m)];
-            newCurve.alpha0[i] = curve.alpha0[mod(j, m)];
-            newCurve.beta[i] = curve.beta[mod(j, m)];
+            newCurve.tag[i] = curve.tag[mod(j, n)];
+            newCurve.controlPoints[i * 3 + 0] = curve.controlPoints[mod(j, n) * 3 + 0];
+            newCurve.controlPoints[i * 3 + 1] = curve.controlPoints[mod(j, n) * 3 + 1];
+            newCurve.controlPoints[i * 3 + 2] = curve.controlPoints[mod(j, n) * 3 + 2];
+            newCurve.basePoints[i] = curve.basePoints[mod(j, n)];
+            newCurve.alpha[i] = curve.alpha[mod(j, n)];
+            newCurve.alpha0[i] = curve.alpha0[mod(j, n)];
+            newCurve.beta[i] = curve.beta[mod(j, n)];
             s[i] = 1.0;
             t[i] = 1.0;
         } else {
             newCurve.tag[i] = "CURVE";
-            newCurve.points[i * 3 + 0] = opt[j].c[0];
-            newCurve.points[i * 3 + 1] = opt[j].c[1];
-            newCurve.points[i * 3 + 2] = curve.points[mod(j, m) * 3 + 2];
-            newCurve.vertex[i] = interval(opt[j].s, curve.points[mod(j, m) * 3 + 2],
-                vert[mod(j, m)]);
+            newCurve.controlPoints[i * 3 + 0] = opt[j].c[0];
+            newCurve.controlPoints[i * 3 + 1] = opt[j].c[1];
+            newCurve.controlPoints[i * 3 + 2] = curve.controlPoints[mod(j, n) * 3 + 2];
+            newCurve.basePoints[i] = interval(opt[j].s, curve.controlPoints[mod(j, n) * 3 + 2], vert[mod(j, n)]);
             newCurve.alpha[i] = opt[j].alpha;
             newCurve.alpha0[i] = opt[j].alpha;
             s[i] = opt[j].s;
@@ -846,39 +855,41 @@ function optiCurve(path: Path, config: Config) {
     path.curve = newCurve;
 }
 
+/**
+ * Processes an array of paths using the provided configuration.
+ * @param pathArr - An array of paths to be processed.
+ * @param config - The configuration object.
+ */
 export function processPath(pathArr: Path[], config: Config) {
     for (const path of pathArr) {
-        calcSums(path);
+        path.sums = calcSums(path.points);
         calcLon(path);
         bestPolygon(path);
         adjustVertices(path);
 
         if (path.sign === "-") {
-            reverse(path);
+            reversePath(path);
         }
 
-        smooth(path, config);
+        smoothPath(path, config);
 
         if (config.optCurve) {
             optiCurve(path, config);
         }
     }
-
 }
 
-
-function calcSums(path: Path) {
-    const { points } = path;
+/**### 预处理数据，方便后续计算 */
+function calcSums(points: Point[]) {
     const { x: x0, y: y0 } = points[0];
 
-    path.sums = [];
-    const { sums } = path;
+    const sums: Sum[] = [];
     sums.push(new Sum(0, 0, 0, 0, 0));
     for (let i = 0; i < points.length; i++) {
         const x = points[i].x - x0;
         const y = points[i].y - y0;
-        const sum = new Sum(sums[i].x + x, sums[i].y + y, sums[i].xy + x * y,
-            sums[i].x2 + x * x, sums[i].y2 + y * y)
+        const sum = new Sum(sums[i].x + x, sums[i].y + y, sums[i].xy + x * y, sums[i].x2 + x * x, sums[i].y2 + y * y);
         sums.push(sum);
     }
+    return sums;
 }

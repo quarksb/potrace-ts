@@ -16,18 +16,19 @@ export class Curve {
     /**type 直线还是曲线*/
     tag: string[];
     /**曲线控制点数据 */
-    points: Point[];
+    controlPoints: Point[];
     alphaCurve: number;
-    vertex: Point[];
+    /**基础点数据 */
+    basePoints: Point[];
     alpha: number[];
     alpha0: number[];
     beta: number[];
     constructor (n: number) {
         this.n = n;
         this.tag = new Array(n);
-        this.points = new Array(n * 3);
+        this.controlPoints = new Array(n * 3);
         this.alphaCurve = 0;
-        this.vertex = new Array(n);
+        this.basePoints = new Array(n);
         this.alpha = new Array(n);
         this.alpha0 = new Array(n);
         this.beta = new Array(n);
