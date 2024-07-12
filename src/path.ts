@@ -2,7 +2,7 @@ import { Path, Point } from "./base";
 import { Bitmap } from "./bitmap";
 import { Config } from "./config";
 
-export function bitmapToPathArr(bitmap: Bitmap, config: Config) {
+export function bitmapToPathArr(bitmap: Bitmap, config: Pick<Config, "turnPolicy" | "turdSize">) {
     const bmCopy = bitmap!.copy();
     const pathArr: Path[] = [];
 
@@ -38,7 +38,7 @@ function getNextPoint(bitmap: Bitmap, point: Point) {
  * 通过上下左右获取路径的基础数据，即边缘点 
  * 
  */
-export function getPath(bitmap: Bitmap, point: Point, { turnPolicy: p }: Config) {
+export function getPath(bitmap: Bitmap, point: Point, { turnPolicy: p }: Pick<Config, "turnPolicy">) {
     const path = new Path();
 
     let [dirX, dirY] = [0, 1];

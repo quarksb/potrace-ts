@@ -41,7 +41,6 @@ export class Curve {
     /**基础点数据, 即多边形的每条边必然经过的点 */
     basePoints: Point[];
     alpha: number[];
-    alpha0: number[];
     constructor (n: number) {
         this.n = n;
         this.tag = new Array(n);
@@ -49,7 +48,6 @@ export class Curve {
         this.alphaCurve = 0;
         this.basePoints = new Array(n);
         this.alpha = new Array(n);
-        this.alpha0 = new Array(n);
     }
 }
 

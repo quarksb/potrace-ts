@@ -1,6 +1,6 @@
 import { Curve, OptData as OptData, Path, Point, Matrix3x3, Sum } from "./base";
 import { Config } from "./config";
-import { bezier, cross1, cross2, cross0, isCyclic, dot, dot2, getDenom, getDist, interval, mod, quadForm, tangent } from "./math";
+import { getPointOnBezier, cross1, cross2, cross0, isCyclic, dot, dot2, getDenom, getDist, interval, mod, quadForm, tangent } from "./math";
 
 /**### 惩罚函数 */
 function getPenalty(path: Path, i: number, j: number) {
@@ -40,7 +40,7 @@ function getPenalty(path: Path, i: number, j: number) {
  * 
  * It is clear from the definition that if a path is straight, then so are all its subpaths.
  * In order to compute whether a given path is straight or not, we use the stronger fact
- * that straightness is a triplewise property, in the following sense. Suppose that a given 
+ * that straightness is a *triplewise* property, in the following sense. Suppose that a given 
  * path p = {v0,...,vn} does not use all four directions. Then p is straight if and only if 
  * for all triples (i, j,k) of indices such that 0 6 i < j < k 6 n, there exists a point w on 
  * the straight line through vi and vk such that d(vj,w) 6 1. This observation gives rise to 
@@ -241,12 +241,15 @@ export function bestPolygon(path: Path) {
 /**
  * this line passes through the 
  * center of gravity (E(xk),E(yk)), where k = ik,...,ik+1, and its slope is given by the 
- * eigenvector of the larger eigenvalue of the matrix  
+ * eigenvector of the larger eigenvalue of the matrix [
  * a b 
- * b c 
+ * b c ]
  * , where 
+ * 
  * a = E(xj^2)−E(xj)^2,
+ * 
  * b = E(xj * yj)−E(xj)*E(yj),
+ * 
  * c = E(yj^2)−E(yj)^2.
  * @param path 
  * @param i 
@@ -500,7 +503,6 @@ export function getCurveData(path: Path, config: Config) {
             alpha = dd > 1 ? 1 - 1.0 / dd : 0;
         }
         alpha *= 4 / 3.0;
-        curve.alpha0[j] = alpha;
 
         // alpha 大于设定的阈值，认为是拐角，否则是曲线
         if (alpha >= config.alphaMax) {
@@ -613,7 +615,7 @@ function optimizeWithPenalty(path: Path, i: number, j: number, res: OptData, opt
         if (t < -0.5) {
             return true;
         }
-        const pt = bezier(t, p0, p1, p2, p3);
+        const pt = getPointOnBezier(t, p0, p1, p2, p3);
         const d = getDist(vertex[k], vertex[k1]);
         if (d === 0.0) {
             return true;
@@ -634,7 +636,7 @@ function optimizeWithPenalty(path: Path, i: number, j: number, res: OptData, opt
         if (t < -0.5) {
             return true;
         }
-        const pt = bezier(t, p0, p1, p2, p3);
+        const pt = getPointOnBezier(t, p0, p1, p2, p3);
         const d = getDist(controlPoints[k * 3 + 2], controlPoints[k1 * 3 + 2]);
         if (d === 0.0) {
             return true;
@@ -665,7 +667,6 @@ export function optimizeCurve(path: Path, config: Config) {
     const penalties = new Array(n + 1); // 记录各路径的惩罚值
     const len = new Array(n + 1); // 记录路径长度
     const opt = new Array(n + 1); // 记录优化参数
-
 
     /**
      * - 1:  表示凹， 
@@ -737,7 +738,6 @@ export function optimizeCurve(path: Path, config: Config) {
             newCurve.controlPoints[i * 3 + 2] = controlPoints[mod(j, n) * 3 + 2];
             newCurve.basePoints[i] = curve.basePoints[mod(j, n)];
             newCurve.alpha[i] = curve.alpha[mod(j, n)];
-            newCurve.alpha0[i] = curve.alpha0[mod(j, n)];
         } else {
             newCurve.tag[i] = "CURVE";
             newCurve.controlPoints[i * 3 + 0] = opt[j].c[0];
@@ -745,7 +745,6 @@ export function optimizeCurve(path: Path, config: Config) {
             newCurve.controlPoints[i * 3 + 2] = controlPoints[mod(j, n) * 3 + 2];
             newCurve.basePoints[i] = interval(opt[j].s, controlPoints[mod(j, n) * 3 + 2], vert[mod(j, n)]);
             newCurve.alpha[i] = opt[j].alpha;
-            newCurve.alpha0[i] = opt[j].alpha;
         }
         j = pt[j];
     }

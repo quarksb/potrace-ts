@@ -120,7 +120,7 @@ export function getDist(p: Point, q: Point) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-export function bezier(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
+export function getPointOnBezier(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
     const s = 1 - t;
     const x = s * s * s * p0.x + 3 * (s * s * t) * p1.x + 3 * (t * t * s) * p2.x + t * t * t * p3.x;
     const y = s * s * s * p0.y + 3 * (s * s * t) * p1.y + 3 * (t * t * s) * p2.y + t * t * t * p3.y;

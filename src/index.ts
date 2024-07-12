@@ -19,10 +19,12 @@ export function imageToSvg(image: HTMLImageElement, config: Partial<Config> = {}
     return pathArrToSVG(pathArr, { w, h }, config.isStroke);
 }
 
+export { bitmapToPathArr }
+
 /**
  * ## 获取灰度图数据, 并二值化
  */
-function getBitmap(image: HTMLImageElement) {
+export function getBitmap(image: HTMLImageElement) {
     const { width, height } = image;
     const canvas = new OffscreenCanvas(width, height);
     const ctx = canvas.getContext('2d')!;
@@ -35,7 +37,7 @@ function getBitmap(image: HTMLImageElement) {
         const [r, g, b, a] = data.slice(j, j + 4);
         const color = 0.2126 * r * a + 0.7152 * g * a + 0.0722 * b * a;
         // assume that the background color of the image is white, and the foreground color is black.
-        bitmap.data[j] = Number(color < 128)
+        bitmap.data[i] = color < 128 ? 1 : 0;
     }
     return bitmap;
 }
@@ -75,14 +77,14 @@ export function processPath(bitmap: Bitmap, config: Config) {
     return pathArr;
 }
 
-export function loadImage(src: string) {
+export function loadImage(src: string | File) {
     return new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
             resolve(img);
         }
         img.onerror = reject;
-        img.src = src;
+        img.src = src instanceof File ? URL.createObjectURL(src) : src;
     })
 }
 
