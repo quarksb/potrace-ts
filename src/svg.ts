@@ -25,7 +25,7 @@ export function pathArrToSVG(pathArr: Path[], size: { w: number, h: number }, is
 
 function getPathStr(curve: Curve) {
     const { n, controlPoints: points, tag } = curve;
-    let pathStr = `M${points[(n - 1) * 3 + 2].toString()} `;
+    let pathStr = `M${points[(n - 1) * 3 + 2].toStr()} `;
     for (let i = 0; i < n; i++) {
         if (tag[i] === "CURVE") {
             pathStr += getBezierStr(points, 3 * i);
@@ -37,10 +37,10 @@ function getPathStr(curve: Curve) {
 }
 
 function getBezierStr(points: Point[], i: number) {
-    return `C ${points[i + 0].toString()}, ${points[i + 1].toString()}, ${points[i + 2].toString()}`;
+    return `C ${points[i + 0].toStr()}, ${points[i + 1].toStr()}, ${points[i + 2].toStr()}`;
 }
 
 /** */
 function getLineStr(points: Point[], i: number) {
-    return `L ${points[i + 2].toString()}`;
+    return `L ${points[i + 2].toStr()}`;
 }

@@ -22,7 +22,7 @@ export class Point {
         return new Point(this.x, this.y);
     };
     /**点的字符串表示 */
-    toString(fractionDigits = 3) {
+    toStr(fractionDigits = 3) {
         return `(${this.x.toFixed(fractionDigits)}, ${this.y.toFixed(fractionDigits)})`;
     }
 }
