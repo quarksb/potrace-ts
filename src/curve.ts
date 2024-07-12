@@ -236,6 +236,9 @@ export function bestPolygon(path: Path) {
         i = prevArr[i];
         path.polygon[j] = i;
     }
+
+    console.log(path.polygon);
+
 }
 
 /**
@@ -277,6 +280,9 @@ function getLineInfo(path: Path, i: number, j: number) {
         i += n;
         r += 1;
     }
+
+    console.log(sums, points, i, j, n, r);
+
 
     const x = sums[j + 1].x - sums[i].x + r * sums[n].x;
     const y = sums[j + 1].y - sums[i].y + r * sums[n].y;
@@ -765,8 +771,7 @@ export function calcSums(path: Path) {
     for (let i = 1; i < points.length; i++) {
         const x = points[i].x - x0;
         const y = points[i].y - y0;
-        const sum = new Sum(sums[i].x + x, sums[i].y + y, sums[i].xy + x * y, sums[i].x2 + x * x, sums[i].y2 + y * y);
-        sums[i] = (sum);
+        sums[i] = new Sum(sums[i - 1].x + x, sums[i - 1].y + y, sums[i - 1].xy + x * y, sums[i - 1].x2 + x * x, sums[i - 1].y2 + y * y);
     }
 
     path.sums = sums;

@@ -35,9 +35,10 @@ export function getBitmap(image: HTMLImageElement) {
     for (let i = 0; 4 * i < data.length; i++) {
         const j = i * 4;
         const [r, g, b, a] = data.slice(j, j + 4);
-        const color = 0.2126 * r * a + 0.7152 * g * a + 0.0722 * b * a;
+        // const color = 0.2126 * r * a + 0.7152 * g * a + 0.0722 * b * a;
+        const color = a;
         // assume that the background color of the image is white, and the foreground color is black.
-        bitmap.data[i] = color < 128 ? 1 : 0;
+        bitmap.data[i] = color > 128 ? 1 : 0;
     }
     return bitmap;
 }
