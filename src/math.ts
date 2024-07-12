@@ -1,28 +1,18 @@
-import { Point, Quad } from "./base";
+import { Point, Matrix3x3 } from "./base";
 
 export function mod(a: number, n: number) {
-    return a >= n ? a % n : a >= 0 ? a : n - 1 - (-1 - a) % n;
+    return (a + n) % n;
 }
 
 /**
- * Calculates the cross product of two points.
- * @param p1 The first point.
- * @param p2 The second point.
- * @returns The cross product of the two points.
- */
-export function crossProduct(p1: Point, p2: Point) {
-    return p1.x * p2.y - p1.y * p2.x;
-}
-
-/**
- * Checks if a number `b` is cyclically between numbers `a` and `c`.
+ * Checks if number `b` is cyclically between numbers `a` and `c`.
  * 
  * @param a - The first number.
  * @param b - The number to check if it is cyclically between `a` and `c`.
  * @param c - The third number.
  * @returns `true` if `b` is cyclically between `a` and `c`, `false` otherwise.
  */
-export function cyclic(a: number, b: number, c: number) {
+export function isCyclic(a: number, b: number, c: number) {
     if (a <= c) {
         return (a <= b && b < c);
     } else {
@@ -30,7 +20,7 @@ export function cyclic(a: number, b: number, c: number) {
     }
 }
 
-export function quadForm(Q: Quad, point: Point) {
+export function quadForm(Q: Matrix3x3, point: Point) {
     const v = [point.x, point.y, 1];
     let sum = 0.0;
 
@@ -61,21 +51,37 @@ export function getDenom(p1: Point, p2: Point) {
     return Math.sign(dx) * dx + Math.sign(dy) * dy;
 }
 
-/** ### ```p0p1 X p0p2``` */
-export function cross2(p0: Point, p1: Point, p2: Point) {
-    return cross(p0, p1, p0, p2);
+/**
+ * Calculates the cross product of two points.
+ * @param x1 - The x-coordinate of the first point.
+ * @param y1 - The y-coordinate of the first point.
+ * @param x2 - The x-coordinate of the second point.
+ * @param y2 - The y-coordinate of the second point.
+ */
+export function cross(x1: number, y1: number, x2: number, y2: number) {
+    return x1 * y2 - y1 * x2;
 }
 
 /**
+ * Calculates the cross product of two points.
+ * @param p1 The first point.
+ * @param p2 The second point.
+ * @returns The cross product of the two points.
+ */
+export function cross0(p1: Point, p2: Point) {
+    return p1.x * p2.y - p1.y * p2.x;
+}
+
+/**
+ * ## *p0p1 x p2p3*
  * Calculates the cross product of two line segments defined by four points.
- *
  * @param p0 - The starting point of the first line segment.
  * @param p1 - The ending point of the first line segment.
  * @param p2 - The starting point of the second line segment.
  * @param p3 - The ending point of the second line segment.
  * @returns The cross product of the two line segments.
  */
-export function cross(p0: Point, p1: Point, p2: Point, p3: Point) {
+export function cross1(p0: Point, p1: Point, p2: Point, p3: Point) {
     const x1 = p1.x - p0.x;
     const y1 = p1.y - p0.y;
     const x2 = p3.x - p2.x;
@@ -84,12 +90,21 @@ export function cross(p0: Point, p1: Point, p2: Point, p3: Point) {
     return x1 * y2 - x2 * y1;
 }
 
-/**```p0p1 * p0p2``` */
+/** ## *p0p1 x p0p2* */
+export function cross2(p0: Point, p1: Point, p2: Point) {
+    return cross1(p0, p1, p0, p2);
+}
+
+
+
+/** 
+ * ## $p0p1 * p0p2$ 
+ */
 export function dot2(p0: Point, p1: Point, p2: Point) {
     return dot(p0, p1, p0, p2);
 }
 
-/**```p0p1 * p2p3``` */
+/**## ```p0p1 * p2p3``` */
 export function dot(p0: Point, p1: Point, p2: Point, p3: Point) {
     const x1 = p1.x - p0.x;
     const y1 = p1.y - p0.y;
@@ -114,9 +129,9 @@ export function bezier(t: number, p0: Point, p1: Point, p2: Point, p3: Point) {
 
 
 export function tangent(p0: Point, p1: Point, p2: Point, p3: Point, q0: Point, q1: Point) {
-    const A = cross(p0, p1, q0, q1);
-    const B = cross(p1, p2, q0, q1);
-    const C = cross(p2, p3, q0, q1);
+    const A = cross1(p0, p1, q0, q1);
+    const B = cross1(p1, p2, q0, q1);
+    const C = cross1(p2, p3, q0, q1);
 
     const a = A - 2 * B + C;
     const b = -2 * A + 2 * B;

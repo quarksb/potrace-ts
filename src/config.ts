@@ -1,43 +1,60 @@
-/*parameters:
- *        turnpolicy ("black" / "white" / "left" / "right" / "minority" / "majority")
- *          how to resolve ambiguities in path decomposition. (default: "minority")       
- *        turdsize
- *          suppress speckles of up to this size (default: 2)
- *        optcurve (true / false)
- *          turn on/off curve optimization (default: true)
- *        alphamax
- *          corner threshold parameter (default: 1)
- *        opttolerance 
- *          curve optimization tolerance (default: 0.2)
+
+/**
+ * ### 参数配置
+ * 
+ * - `turnPolicy` 转向策略
+ * - `turdSize` 杂点判定阈值
+ * - `optCurve` 是否优化曲线
+ * - `alphaMax` 角度阈值
+ * - `optTolerance` 优化容差
+ * - `scale` 缩放比例
+ * - `isStroke` 填充还是描边
  */
 export interface Config {
-    isReady: boolean;
     /**
      * ### 转向策略
+     * |Policy|Description|
+     * |:--|:--|
+     * |left:| which always takes a left turn |
+     * |right:| which always takes a right turn |
+     * |black:| which prefers to connect black components |
+     * |white:| which prefers to connect white components |
+     * |minority:| which prefers to connect the color (black or white) that occurs least frequently within a given neighborhood of the current position |
+     * |majority:| which prefers to connect the color that occurs most frequently |
+     * |random:| which makes a (more or less) random choice. |
      * 
-     * - 左 "left"：一直会往左转。
-     * - 右 "right"：一直会往右转。
-     * - 黑 "black"：更倾向于链接黑色单元。
-     * - 白 "white"：更倾向于链接白色单元。
-     * - 少数派 "minority"：更倾向于链接在当前点给定范围内出现的最少的颜色。
-     * - 多数派 "majority"：更倾向于链接出现的更多的颜色。
-     * - 随机：随机转向。
+     * The default turn policy is minority
      * 
-     * 默认规则是少数派。 
+     * @default "minority"
      */
     turnPolicy: string;
-    /**杂点判定阈值 */
+    /** turd 大便 turd size 杂点判定阈值, 面积小于此阈值的的路径将会被忽略 
+     * @default 2
+    */
     turdSize: number;
+    /**是否优化曲线 
+     * @default true
+    */
     optCurve: boolean;
+    /**弯曲度阈值, 用来判定是否是拐角 
+     * @default 1
+    */
     alphaMax: number;
+    /**优化容差 
+     * @default 0.2
+    */
     optTolerance: number;
+    /**缩放比例
+     * @default 1
+     */
     scale: number;
-    /**填充还是描边 */
+    /**填充还是描边 
+     * @default false
+    */
     isStroke: boolean;
 }
 
 export const DefaultConfig: Config = {
-    isReady: false,
     turnPolicy: "minority",
     turdSize: 2,
     optCurve: true,

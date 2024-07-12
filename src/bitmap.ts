@@ -17,10 +17,6 @@ export class Bitmap {
      */
     size: number;
     /**
-     * The underlying ArrayBuffer that stores the bitmap data.
-     */
-    arraybuffer: ArrayBuffer;
-    /**
      * The Int8Array that represents the bitmap data.
      */
     data: Int8Array;
@@ -34,8 +30,7 @@ export class Bitmap {
         this.w = w;
         this.h = h;
         this.size = w * h;
-        this.arraybuffer = new ArrayBuffer(this.size);
-        this.data = new Int8Array(this.arraybuffer);
+        this.data = new Int8Array(this.size);
     }
 
     /**
@@ -46,10 +41,8 @@ export class Bitmap {
      */
     checkPixel(x: number, y: number): boolean {
         return (
-            x >= 0 &&
-            x < this.w &&
-            y >= 0 &&
-            y < this.h &&
+            x >= 0 && x < this.w &&
+            y >= 0 && y < this.h &&
             this.data[this.w * y + x] === 1
         );
     }
